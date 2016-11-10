@@ -118,6 +118,10 @@ config TARGET_SMDK2410
 	bool "Support smdk2410"
 	select CPU_ARM920T
 
+config TARGET_MINI2440
+	bool "Support mini2440"
+	select CPU_ARM920T
+
 config TARGET_ASPENITE
 	bool "Support aspenite"
 	select CPU_ARM926EJS
@@ -951,6 +955,7 @@ source "board/freescale/mx53loco/Kconfig"
 source "board/freescale/mx53smd/Kconfig"
 source "board/freescale/s32v234evb/Kconfig"
 source "board/freescale/vf610twr/Kconfig"
+source "board/friendlyarm/mini2440/Kconfig"
 source "board/gumstix/pepper/Kconfig"
 source "board/h2200/Kconfig"
 source "board/hisilicon/hikey/Kconfig"
