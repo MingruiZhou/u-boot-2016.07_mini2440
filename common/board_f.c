@@ -357,7 +357,15 @@ static int setup_dest_addr(void)
 #endif
 	gd->ram_top += get_effective_memsize();
 	gd->ram_top = board_get_usable_ram_top(gd->mon_len);
+	/*
+	 * MINI2440 QEMU loading u-boot at 0x33F80000 since start up
+	 * So the relocation address need to slip a bit.
+	 */
+#ifdef CONFIG_TARGET_MINI2440
+	gd->relocaddr = gd->ram_top - 0x1000000;
+#else
 	gd->relocaddr = gd->ram_top;
+#endif
 	debug("Ram top: %08lX\n", (ulong)gd->ram_top);
 #if defined(CONFIG_MP) && (defined(CONFIG_MPC86xx) || defined(CONFIG_E500))
 	/*
