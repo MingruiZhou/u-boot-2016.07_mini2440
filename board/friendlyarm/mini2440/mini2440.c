@@ -29,7 +29,8 @@
  */
 
 #include <common.h>
-#include <s3c2440.h>
+#include <asm/arch/s3c2440.h>
+#include <asm/arch/s3c24x0.h>
 #include <video_fb.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -55,28 +56,28 @@ static inline void delay (unsigned long loops)
  * Miscellaneous platform dependent initialisations
  */
 
-int board_init (void)
+int board_early_init_f (void)
 {
-	S3C24X0_CLOCK_POWER * const clk_power = S3C24X0_GetBase_CLOCK_POWER();
-	S3C24X0_GPIO * const gpio = S3C24X0_GetBase_GPIO();
+	struct s3c24x0_clock_power * const clk_power = s3c24x0_get_base_clock_power();
+	struct s3c24x0_gpio * const gpio = s3c24x0_get_base_gpio();
 
 	/* to reduce PLL lock time, adjust the LOCKTIME register */
-	clk_power->LOCKTIME = 0xFFFFFF;
-	clk_power->CLKDIVN = CLKDIVN_VAL;
+	clk_power->locktime = 0xFFFFFF;
+	clk_power->clkdivn = CLKDIVN_VAL;
 
 	/* configure UPLL */
-	clk_power->UPLLCON = ((U_M_MDIV << 12) + (U_M_PDIV << 4) + U_M_SDIV);
+	clk_power->upllcon = ((U_M_MDIV << 12) + (U_M_PDIV << 4) + U_M_SDIV);
 	/* some delay between MPLL and UPLL */
 	delay (10);
 	/* configure MPLL */
-	clk_power->MPLLCON = ((M_MDIV << 12) + (M_PDIV << 4) + M_SDIV);
+	clk_power->mpllcon = ((M_MDIV << 12) + (M_PDIV << 4) + M_SDIV);
 
 	/* some delay between MPLL and UPLL */
 	delay (8000);
 
-	gpio->GPACON = 0x007FFFFF;	/* Port A is all "special" */
+	gpio->gpacon = 0x007FFFFF;	/* Port A is all "special" */
 	// port B outputs reconfigured
-	gpio->GPBCON = 	
+	gpio->gpbcon = 	
 		(0x1 <<  0) | // GPB0	OUT	TOUT0		PWM Buzzer
 		(0x2 <<  2) | // GPB1	OUT	TOUT1		LCD Backlight
 		(0x1 <<  4) | // GPB2	OUT	L3MODE
@@ -89,8 +90,8 @@ int board_init (void)
 		(0x2 << 18) | // GBP9	---	nXDACK0		CON5 EBI
 		(0x2 << 20) | // GBP10	---	nXDREQ0		CON5 EBI
 		0;
-	gpio->GPBUP	= (1 << 10) - 1; // disable pullup on all 10 pins
-	gpio->GPBDAT	= 	
+	gpio->gpbup	= (1 << 10) - 1; // disable pullup on all 10 pins
+	gpio->gpbdat	= 	
 		(0 << 5) | /* turn LED 1 on */
 		(1 << 6) | /* turn LED 1 off */
 		(1 << 7) | /* turn LED 1 off */
@@ -98,19 +99,19 @@ int board_init (void)
 		0;
 
 	// lcd signals on C and D
-	gpio->GPCCON	= (0xAAAAAAAA &	/* all default IN but ... */
+	gpio->gpccon	= (0xAAAAAAAA &	/* all default IN but ... */
 				~(0x3 << 10)) |	/* not pin 5 ... */
 				(0x1 << 10);	/* that is output (USBD) */
-	gpio->GPCUP	= 0xFFFFFFFF;
-	gpio->GPCDAT	= 0;
+	gpio->gpcup	= 0xFFFFFFFF;
+	gpio->gpcdat	= 0;
 	
-	gpio->GPDCON	= 0xAAAAAAAA;
-	gpio->GPDUP	= 0xFFFFFFFF;
+	gpio->gpdcon	= 0xAAAAAAAA;
+	gpio->gpdup	= 0xFFFFFFFF;
 	// port E is set for all it's special functions (i2c, spi etc)
-    	gpio->GPECON 	= 0xAAAAAAAA;
-	gpio->GPEUP	= 0x0000FFFF;
+    	gpio->gpecon 	= 0xAAAAAAAA;
+	gpio->gpeup	= 0x0000FFFF;
 
-	gpio->GPFCON 	= 
+	gpio->gpfcon 	= 
 		(0x1 <<  0) | // GPG0	EINT0	OUT
 		(0x1 <<  2) | // GPG1	EINT1	OUT
 		(0x1 <<  4) | // GPG2	EINT2	OUT
@@ -120,13 +121,13 @@ int board_init (void)
 		(0x1 << 12) | // GPG6	EINT6	OUT
 		(0x0 << 14) | // GPG7	EINT7	IN	DM9000
 		0;
-	gpio->GPFDAT	= 0;
-	gpio->GPFUP	= 
+	gpio->gpfdat	= 0;
+	gpio->gpfup	= 
 		((1 << 7) - 1) // all disabled
 		& ~( 1 << 7 ) // but for the ethernet one, we need it.
 		;
 
-	gpio->GPGCON 	=
+	gpio->gpgcon 	=
 		(0x0 <<  0) | // GPG0	EINT8	IN	Key1
 		(0x1 <<  2) | // GPG1	EINT9	OUT		Con5
 		(0x1 <<  4) | // GPG2	EINT10	OUT
@@ -144,9 +145,9 @@ int board_init (void)
 		(0x0 << 28) | // GPG14	EINT18	IN
 		(0x0 << 30) | // GPG15	EINT18	IN
 		0;
-	gpio->GPGUP = (1 << 15) -1;	// disable pullups for all pins
+	gpio->gpgup = (1 << 15) -1;	// disable pullups for all pins
 	
-	gpio->GPHCON = 
+	gpio->gphcon = 
 		(0x2 <<  0) | // GPH0	nCTS0			---
 		(0x2 <<  2) | // GPH1	nRTS0			---
 		(0x2 <<  4) | // GPH2	TXD0			---
@@ -159,21 +160,29 @@ int board_init (void)
 		(0x1 << 18) | // GPH9	CLKOUT0			OUT
 		(0x1 << 20) | // GPH10	CLKOUT1			OUT
 		0;
-	gpio->GPHUP = (1 << 10) - 1; // disable pullups for all pins
+	gpio->gphup = (1 << 10) - 1; // disable pullups for all pins
 
-	gpio->EXTINT0=0x22222222;
-	gpio->EXTINT1=0x22222222;
-	gpio->EXTINT2=0x22222222;
+	gpio->extint0=0x22222222;
+	gpio->extint1=0x22222222;
+	gpio->extint2=0x22222222;
 
 	/* USB Device Part */
 	/* GPC5 is reset for USB Device */
 
-	gpio->GPCDAT |= ( 1 << 5) ; 
+	gpio->gpcdat |= ( 1 << 5) ; 
 	udelay(20000);
-	gpio->GPCDAT &= ~( 1 << 5) ; 
+	gpio->gpcdat &= ~( 1 << 5) ; 
 	udelay(20000);
-	gpio->GPCDAT |= ( 1 << 5) ; 
+	gpio->gpcdat |= ( 1 << 5) ; 
 
+
+
+
+	return 0;
+}
+
+int board_init(void)
+{
 	/* arch number from kernel post 2.6.28 */
 #ifndef MACH_TYPE_MINI2440
 #define MACH_TYPE_MINI2440 1999
@@ -188,8 +197,6 @@ int board_init (void)
 
 	return 0;
 }
-
-
 
 #define MVAL		(0)
 #define MVAL_USED 	(0)		//0=each frame   1=rate by MVAL
@@ -221,32 +228,33 @@ int board_init (void)
 
 void board_video_init(GraphicDevice *pGD) 
 { 
-    S3C24X0_LCD * const lcd = S3C24X0_GetBase_LCD(); 
+    struct s3c24x0_lcd * const lcd = s3c24x0_get_base_lcd(); 
 	 
     /* FIXME: select LCM type by env variable */ 
 	 
 	/* Configuration for GTA01 LCM on QT2410 */ 
-	lcd->LCDCON1 = 0x00000378; /* CLKVAL=4, BPPMODE=16bpp, TFT, ENVID=0 */ 
+	lcd->lcdcon1 = 0x00000378; /* CLKVAL=4, BPPMODE=16bpp, TFT, ENVID=0 */ 
 	
 //    lcd->LCDCON2 = 0x014fc141; 
 //	lcd->LCDCON3 = 0x0098ef13; 
 //	lcd->LCDCON4 = 0x00000d05; 
-	lcd->LCDCON5 = 0x00000f09; 
+	lcd->lcdcon5 = 0x00000f09; 
 
-	lcd->LCDCON2 = (VBPD_240320<<24)|(LINEVAL_TFT_240320<<14)|(VFPD_240320<<6)|(VSPW_240320); 
-	lcd->LCDCON3 = (HBPD_240320<<19)|(HOZVAL_TFT_240320<<8)|(HFPD_240320); 
-	lcd->LCDCON4 = (MVAL<<8)|(HSPW_240320); 
+	lcd->lcdcon2 = (VBPD_240320<<24)|(LINEVAL_TFT_240320<<14)|(VFPD_240320<<6)|(VSPW_240320); 
+	lcd->lcdcon3 = (HBPD_240320<<19)|(HOZVAL_TFT_240320<<8)|(HFPD_240320); 
+	lcd->lcdcon4 = (MVAL<<8)|(HSPW_240320); 
 	
    
-    lcd->LPCSEL  = 0x00000000; 
+    lcd->lpcsel  = 0x00000000; 
 } 
 
 int dram_init (void)
 {
-	S3C24X0_MEMCTL * const mem = S3C24X0_GetBase_MEMCTL();
+	struct s3c24x0_memctl * const mem = s3c24x0_get_base_memctl();
+	gd->ram_size = PHYS_SDRAM_1_SIZE;
 	gd->bd->bi_dram[0].start = PHYS_SDRAM_1;
 	/* if the early bootloader found 128MB, lets tell the kernel */
-	if ((mem->BANKCON[6] & 0x3) == 0x2)
+	if ((mem->bankcon[6] & 0x3) == 0x2)
 		gd->bd->bi_dram[0].size = 128*1024*1024;
 	else
 		gd->bd->bi_dram[0].size = 64*1024*1024;
@@ -257,8 +265,18 @@ int dram_init (void)
 /* The sum of all part_size[]s must equal to the NAND size, i.e., 0x4000000 */
 
 unsigned int dynpart_size[] = {
-    CFG_UBOOT_SIZE, 0x20000, 0x500000, 0xffffffff, 0 };
+    CONFIG_UBOOT_SIZE, 0x20000, 0x500000, 0xffffffff, 0 };
 char *dynpart_names[] = {
     "u-boot", "u-boot_env", "kernel", "rootfs", NULL };
 
-
+/*
+ * Hardcoded flash setup:
+ * Flash 0 is a non-CFI AMD AM29LV800BB flash.
+ */
+ulong board_flash_get_legacy(ulong base, int banknum, flash_info_t *info)
+{
+	info->portwidth = FLASH_CFI_16BIT;
+	info->chipwidth = FLASH_CFI_BY16;
+	info->interface = FLASH_CFI_X16;
+	return 1;
+}
